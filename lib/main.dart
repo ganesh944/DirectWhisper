@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class Data {
-  String peer = "Tap to add";
+  String peer = "Peer";
   String myId = "";
   List<String> peerInfo = [];
   late Future<Socket> socket;
@@ -64,6 +64,11 @@ void main(List<String> args) {
   TextEditingController controller = TextEditingController();
 
   runApp(MaterialApp(
+    theme: ThemeData(
+      appBarTheme: const AppBarTheme(
+        color: Colors.indigo
+      )
+    ),
     debugShowCheckedModeBanner: false,
     home: Scaffold(
       appBar: AppBar(
@@ -74,7 +79,9 @@ void main(List<String> args) {
               });
             },
             icon: const Icon(Icons.copy)),
-        title: Paste(data),
+        title: 
+            const Text("Peer",
+            style: TextStyle(fontSize: 40, color: Colors.white)),
         actions: [
           IconButton(
               onPressed: () {}, icon: const Icon(Icons.dark_mode_outlined))
@@ -83,38 +90,52 @@ void main(List<String> args) {
       body: LayoutBuilder(builder: (context, constraints) {
         return Column(
           children: [
-            Container(
-              height: constraints.maxHeight - 50,
+            SizedBox(
+              height: constraints.maxHeight - 100,
               width: constraints.maxWidth,
-              color: Colors.amber,
               child: Messages(data, serverSocket),
             ),
             Container(
-              height: 50,
+              height: 100,
               width: constraints.maxWidth,
-              color: Colors.black87,
+              padding: const EdgeInsets.fromLTRB(15, 10, 15, 30),
               child: Row(
                 children: [
+                  Paste(data),
                   Container(
-                    height: 50,
-                    width: constraints.maxWidth - 50,
-                    color: Colors.lightGreenAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 0,horizontal: 20),
+                    height: 60,
+                    width: constraints.maxWidth - 150,
+                    color: Colors.black26,
                     child: TextField(
+                      cursorColor: Colors.indigo,
+                      style: const TextStyle(
+                         fontSize: 30,
+                         fontWeight: FontWeight.w400
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none
+                      ),
                       controller: controller,
                     ),
                   ),
                   Container(
-                    height: 50,
-                    width: 50,
+                    width: 10,
+                  ),
+                  Container(
+                    height: 60,
+                    width: 60,
                     color: Colors.indigo,
-                    child: IconButton(
-                        onPressed: () {
-                          data.socket.then((value) {
+                    child: ElevatedButton(
+                      style: const ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(Colors.transparent)
+                      ),
+                      onPressed: (){
+                      data.socket.then((value) {
                             value.write(controller.text);
                             controller.clear();
                           });
-                        },
-                        icon: const Icon(Icons.arrow_circle_right_outlined)),
+                    }, child: const Icon(Icons.arrow_circle_right_outlined)),
                   )
                 ],
               ),
@@ -149,14 +170,14 @@ class _MessagesState extends State<Messages> {
     });
   }
 
-  String info = "string";
+  String info = "Message appears here";
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.brown,
-      child: Center(child: Text(info)),
-    );
+    return Center(child: Text(info,style: const TextStyle(
+      fontSize: 30,
+      fontWeight: FontWeight.w400
+    ),));
   }
 }
 
@@ -170,7 +191,7 @@ class Paste extends StatefulWidget {
 class _PasteState extends State<Paste> {
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return IconButton(
         onPressed: () {
           Clipboard.getData("text/plain").then((value) {
             if (value != null && value.text != null) {
@@ -186,9 +207,7 @@ class _PasteState extends State<Paste> {
             }
           });
         },
-        child: Text(
-          widget.data.peer,
-          style: const TextStyle(fontSize: 40, color: Colors.white),
-        ));
+        icon: const Icon(Icons.paste)
+      );
   }
 }
