@@ -13,46 +13,50 @@ class Data {
   KeyPair appKeyPair = KeyPair(
 """
 
-""",
+""", 
 """
 
-"""     
+"""
 );
 
   Future<KeyPair> keyPair = RSA.generate(512);
-
-  Future<InternetAddress> address =
-      NetworkInterface.list(type: InternetAddressType.IPv6).then((list) {
-    for (var networkInterface in list) {
-      for (var address in networkInterface.addresses) {
-        if (address.address.substring(0, 1) == "2" ||
-            address.address.substring(0, 1) == "3") {
-          return address;
-        }
-      }
-    }
-    return Future.error("No globally routable ipv6 found");
-  });
 }
 
 Future<ServerSocket> init(Data data) async {
-  ServerSocket ret;
-  return await data.address.then((value) async {
-    KeyPair keyPair = await data.keyPair;
-    while (true) {
-      try {
-        ret = await ServerSocket.bind(value, Random().nextInt(40000) + 20000);
-        print(ret.port);
-        List<String> message = [keyPair.publicKey,ret.address.address,ret.port.toString()];
-        data.myId = await RSA.encryptOAEP(message.toString(), "Id", Hash.MD5, data.appKeyPair.publicKey);
-        return Future.value(ret);
-      } catch (e) {
-        e;
+
+  var listOfNetworkInterfaces = await NetworkInterface.list(type: InternetAddressType.IPv6);
+
+  ServerSocket serverSocket;
+  for (var networkInterface in listOfNetworkInterfaces) {
+    for (var address in networkInterface.addresses) {
+      if (address.address.substring(0, 1) == "2" ||
+          address.address.substring(0, 1) == "3") {
+        KeyPair keyPair = await data.keyPair;
+        int port;
+        while (true) {
+          try {
+            port = Random().nextInt(40000) + 20000;
+            serverSocket = await ServerSocket.bind(
+                address, port);
+               print(String.fromCharCodes(address.rawAddress));
+            List<String> message = [
+              keyPair.publicKey,
+              String.fromCharCodes(address.rawAddress),
+              port.toString()
+            ];
+            data.myId = await RSA.encryptOAEP(
+                message.toString(), "Id", Hash.MD5, data.appKeyPair.publicKey);
+            return serverSocket;
+          } catch (e) {
+            e;
+          }
+        }
       }
     }
-  }).onError((error, stackTrace) {
-    return Future.error(error!);
-  });
+  }
+
+  return Future.error("No Globally routable ipv6 found");
+
 }
 
 void main(List<String> args) {
@@ -64,17 +68,17 @@ void main(List<String> args) {
     debugShowCheckedModeBanner: false,
     home: Scaffold(
       appBar: AppBar(
-        leading: IconButton(onPressed: () {
-          serverSocket.then((value) {
-            Clipboard.setData(ClipboardData(text: data.myId));
-          });
-        }, icon: const Icon(Icons.copy)),
+        leading: IconButton(
+            onPressed: () {
+              serverSocket.then((value) {
+                Clipboard.setData(ClipboardData(text: data.myId));
+              });
+            },
+            icon: const Icon(Icons.copy)),
         title: Paste(data),
         actions: [
           IconButton(
-              onPressed: () {
-
-              }, icon: const Icon(Icons.dark_mode_outlined))
+              onPressed: () {}, icon: const Icon(Icons.dark_mode_outlined))
         ],
       ),
       body: LayoutBuilder(builder: (context, constraints) {
@@ -96,7 +100,9 @@ void main(List<String> args) {
                     height: 50,
                     width: constraints.maxWidth - 50,
                     color: Colors.lightGreenAccent,
-                    child: TextField(controller: controller,),
+                    child: TextField(
+                      controller: controller,
+                    ),
                   ),
                   Container(
                     height: 50,
@@ -137,10 +143,8 @@ class _MessagesState extends State<Messages> {
     widget.serverSocket.then((value) {
       value.listen((socket) {
         socket.listen((event) {
-           info = String.fromCharCodes(event);
-           setState(() {
-
-           });
+          info = String.fromCharCodes(event);
+          setState(() {});
         });
       });
     });
@@ -151,9 +155,9 @@ class _MessagesState extends State<Messages> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        color: Colors.brown,
-        child: Center(child: Text(info)),
-  );
+      color: Colors.brown,
+      child: Center(child: Text(info)),
+    );
   }
 }
 
@@ -169,16 +173,19 @@ class _PasteState extends State<Paste> {
   Widget build(BuildContext context) {
     return TextButton(
         onPressed: () {
-                Clipboard.getData("text/plain").then((value){
-                  if(value != null && value.text != null){
-                    RSA.decryptOAEP(value.text!, "Id", Hash.MD5, widget.data.appKeyPair.privateKey).then((value) {
-                      widget.data.peerInfo = value.substring(1,value.length-1).split(", ");
-                      print(widget.data.peerInfo);
-                      widget.data.socket = Socket.connect(widget.data.peerInfo[1],int.parse(widget.data.peerInfo[2]));
-
-                    });
-                  }
-                });
+          Clipboard.getData("text/plain").then((value) {
+            if (value != null && value.text != null) {
+              RSA
+                  .decryptOAEP(value.text!, "Id", Hash.MD5,
+                      widget.data.appKeyPair.privateKey)
+                  .then((value) {
+                widget.data.peerInfo =
+                    value.substring(1, value.length - 1).split(", ");
+                widget.data.socket = Socket.connect(InternetAddress.fromRawAddress(Uint8List.fromList(widget.data.peerInfo[1].codeUnits)),
+                    int.parse(widget.data.peerInfo[2]));
+              });
+            }
+          });
         },
         child: Text(
           widget.data.peer,
