@@ -19,7 +19,7 @@ class Data {
 """
 );
 
-  Future<KeyPair> keyPair = RSA.generate(512);
+  Future<KeyPair> keyPair = RSA.generate(2048);
 }
 
 Future<ServerSocket> init(Data data) async {
