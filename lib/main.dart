@@ -25,7 +25,6 @@ class Data {
 Future<ServerSocket> init(Data data) async {
 
   var listOfNetworkInterfaces = await NetworkInterface.list(type: InternetAddressType.IPv6);
-
   ServerSocket serverSocket;
   for (var networkInterface in listOfNetworkInterfaces) {
     for (var address in networkInterface.addresses) {
